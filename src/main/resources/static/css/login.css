@@ -1,0 +1,1 @@
+.login-shell{min-height:90vh;display:grid;place-items:center;padding:24px}.login-panel{width:min(100%,460px);padding:36px}.login-panel h1{font-size:2rem;margin:14px 0}.login-panel .user-form{display:grid;gap:14px;padding:20px 0 0}.login-panel input{width:100%;padding:12px;border:1px solid #bbc7d7;border-radius:8px;font:inherit}.login-panel .primary{margin-top:12px}
