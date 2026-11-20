@@ -1,5 +1,13 @@
 target/
 .runtime/
+*.log
+
+# Local environment configuration
 .env
+.env.*
+!.env.example
+
+# IntelliJ and macOS
 .idea/
 *.iml
+.DS_Store
