@@ -1,6 +1,7 @@
 package com.example.banking;
 
 import java.io.Serializable;
+import com.example.banking.bank.ActivationStatus;
 
 
 public class Registration implements Serializable {
@@ -46,6 +47,10 @@ public class Registration implements Serializable {
     private String phone;
     public String getPhone() { return phone; }
     public void setPhone(String value) { this.phone = value; }
+
+    private ActivationStatus bankStatus;
+    public ActivationStatus getBankStatus() { return bankStatus; }
+    public void setBankStatus(ActivationStatus bankStatus) { this.bankStatus = bankStatus; }
 
     private String bankName;
     public String getBankName() { return bankName; }

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banking System Spring | End-to-end architecture</title>
+<style>
+:root{color-scheme:light;--ink:#172b37;--muted:#4c6169;--paper:#eff5f3;--white:#fff;--line:#cddbd7;--teal:#005a50;--mint:#aef1d8;--navy:#102b33;font:100%/1.6 system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink)}a{color:var(--teal);text-underline-offset:.2em}a:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #168c78;outline-offset:4px}
+.wrap{width:min(1120px,calc(100% - 2.5rem));margin:auto}.hero{background:var(--navy);color:white;padding:1.2rem 0 3.7rem}.bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid #42606a;padding-bottom:1rem}.bar strong{letter-spacing:.03em}.bar nav{display:flex;flex-wrap:wrap;gap:1rem}.bar a{color:var(--mint)}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(2.5rem,7vw,5.15rem);line-height:1;max-width:13ch;letter-spacing:-.055em;margin:2.6rem 0 1.15rem}h2{font-size:clamp(1.6rem,4vw,2.35rem);line-height:1.15;letter-spacing:-.035em;margin-bottom:1rem}h3{line-height:1.3;margin-bottom:.5rem}.hero p{max-width:62ch;color:#d5e8e9;margin-bottom:0}.layout{display:grid;gap:2.25rem;padding:2.3rem 0 3rem}section{scroll-margin-top:1rem}.panel{background:var(--white);border:1px solid var(--line);border-radius:1rem;padding:clamp(1rem,3vw,1.6rem)}.map{list-style:none;margin:0;padding:0;display:grid;gap:.7rem}.map li{display:grid;grid-template-columns:minmax(9rem,1fr) 3fr;gap:1rem;align-items:baseline;border:1px solid var(--line);border-radius:.6rem;padding:.75rem 1rem;background:#f7faf9}.map strong{color:var(--teal)}.flow{counter-reset:none;padding-left:1.65rem;margin-bottom:0}.flow li{padding:0 0 1rem .5rem}.flow li:last-child{padding-bottom:0}.flow li::marker{color:var(--teal);font-weight:750}.flow p{margin:0}.flow a,.refs a{font-size:.9rem}.columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.columns article p:last-child{margin-bottom:0}.demo{background:#dceee8}.fields{display:flex;gap:1rem;align-items:end;flex-wrap:wrap}.fields label{display:grid;gap:.3rem;font-weight:650}.fields input,.fields select,button{font:inherit;padding:.5rem .7rem;border:1px solid #809f96;border-radius:.45rem;color:var(--ink);background:white;max-width:100%}button{background:var(--teal);color:white;cursor:pointer;border-color:var(--teal);font-weight:700}.result{margin:1rem 0 .75rem;font-weight:700}.payloads pre{background:var(--navy);color:#e5f5f0;padding:1rem;border-radius:.6rem;overflow:auto;margin:.3rem 0 0}code{font-size:.9em;overflow-wrap:anywhere}.muted{color:var(--muted)}.refs{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem}footer{border-top:1px solid var(--line);padding:1.25rem 0 1.8rem}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}caption{text-align:left;font-weight:700;margin-bottom:.55rem}th,td{text-align:left;padding:.65rem;border-bottom:1px solid var(--line);vertical-align:top}@media(max-width:640px){.columns,.map li{grid-template-columns:1fr}.map li{gap:.2rem}.wrap{width:calc(100% - 1.5rem)}}@media print{.hero{background:white;color:var(--ink);padding-bottom:1rem}.hero p,.bar a{color:var(--ink)}.bar nav,form{display:none}.panel{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="bar"><strong>Banking System Spring</strong><nav aria-label="Page sections"><a href="#architecture">Architecture</a><a href="#flow">Registration flow</a><a href="#demo">Activation demo</a><a href="#operations">Operations</a></nav></div>
+    <h1>From customer registration to bank activation</h1>
+    <p>Follow a customer ID from the Spring Boot dashboard through MySQL, MongoDB, PostgreSQL, and two Kafka topics.</p>
+  </div>
+</header>
+<main class="wrap layout">
+  <section id="architecture">
+    <h2>Architecture</h2>
+    <div class="panel">
+      <ul class="map">
+        <li><strong>Browser</strong><span>The administrator signs in and uses the JSP registration wizard, customer directory, and edit form.</span></li>
+        <li><strong>Spring Boot</strong><span>Spring Security checks the session and protects form submissions with CSRF. Spring MVC routes saves to the registration coordinator. The Kafka publisher and listener run in this same process.</span></li>
+        <li><strong>MySQL · 3306</strong><span><code>personal_details</code> generates the shared customer ID. <code>login_accounts</code> stores administrator usernames and BCrypt password hashes separately.</span></li>
+        <li><strong>MongoDB · 27017</strong><span><code>address_details</code> stores each customer’s address and phone using the shared ID as <code>_id</code>.</span></li>
+        <li><strong>PostgreSQL · 5432</strong><span><code>bank_details</code> stores the bank information, status, and latest request UUID. <code>bank_activation_outbox</code> holds events awaiting publication.</span></li>
+        <li><strong>Kafka · 9092</strong><span>The request topic triggers bank validation. The results topic carries the outcome. Both topics use the customer ID as the record key.</span></li>
+      </ul>
+    </div>
+  </section>
+  <section id="flow">
+    <h2>End-to-end registration flow</h2>
+    <div class="panel">
+      <ol class="flow">
+        <li><h3>Sign in and submit the registration</h3><p>The administrator completes the personal, contact, and bank steps. The controller validates the form and hands it to the registration coordinator.</p><a href="../src/main/java/com/example/banking/RegistrationController.java">RegistrationController.java</a></li>
+        <li><h3>Write the three customer records</h3><p>MySQL saves the personal record and assigns the customer ID. The coordinator saves the MongoDB address under that ID, then invokes the bank activation service. PostgreSQL commits the bank row with <code>IN_PROGRESS</code> and its outbox request together.</p><a href="../src/main/java/com/example/banking/RegistrationRepository.java">RegistrationRepository.java</a></li>
+        <li><h3>Publish the activation request</h3><p>The scheduled publisher reads the outbox, sends JSON to <code>customer-bank-activation-requests</code>, and removes the outbox row after Kafka acknowledges it.</p><a href="../src/main/java/com/example/banking/bank/BankActivationMessaging.java">BankActivationMessaging.java</a></li>
+        <li><h3>Consume the request and validate the account</h3><p>The <code>banking-system-activation</code> group consumes the request. The service locks the PostgreSQL bank row and checks that the request UUID matches the pending attempt. It compares the saved account number with the prefix for the saved bank.</p><a href="../src/main/java/com/example/banking/bank/BankActivationService.java">BankActivationService.java</a></li>
+        <li><h3>Commit and publish the outcome</h3><p>PostgreSQL commits <code>ACTIVATED</code> or <code>FAILED</code> with a second outbox event. The publisher sends that event to <code>customer-bank-activation-results</code>. The grid’s <strong>Reload</strong> button reads the updated status from the app while preserving the current search and unsaved form entries.</p></li>
+      </ol>
+    </div>
+  </section>
+  <section id="demo">
+    <h2>Try the activation rules</h2>
+    <div class="panel demo">
+      <p>This simulation uses a synthetic customer and runs entirely in the page.</p>
+      <div class="table-scroll"><table><caption>Bank account prefixes</caption><thead><tr><th scope="col">Bank of America</th><th scope="col">Chase</th><th scope="col">US Bank</th></tr></thead><tbody><tr><td><code>9898</code></td><td><code>7878</code></td><td><code>6868</code></td></tr></tbody></table></div>
+      <form id="activation-form" class="fields">
+        <label>Bank<select id="bank"><option>Bank of America</option><option>Chase</option><option>US Bank</option><option>Other bank</option></select></label>
+        <label>Synthetic account number<input id="account" inputmode="numeric" pattern="[0-9]{1,34}" maxlength="34" value="98980042" required></label>
+        <button type="submit">Simulate activation</button>
+      </form>
+      <p class="result" id="outcome" role="status">ACTIVATED · Account prefix matches Bank of America.</p>
+      <div class="columns payloads">
+        <div><strong>Request payload</strong><pre><code id="request-json"></code></pre></div>
+        <div><strong>Result payload</strong><pre><code id="result-json"></code></pre></div>
+      </div>
+      <p class="muted" style="margin:1rem 0 0">Both payloads carry the same customer ID and request UUID. Account numbers and SSNs stay in PostgreSQL.</p>
+    </div>
+  </section>
+  <section id="operations">
+    <h2>Edits, retries, and transaction boundaries</h2>
+    <div class="columns">
+      <article class="panel"><h3>Read, edit, and delete</h3><p>The directory starts from MySQL and joins address and bank data by customer ID. Missing details remain visible and can be completed through Edit. Saving restarts activation with a new request UUID. Delete removes the address, bank row, and personal record in that order.</p></article>
+      <article class="panel"><h3>Failure between databases</h3><p>Each database commits separately. The coordinator attempts to compensate for caught save or delete failures. A crash between writes or a failed repair can leave partial data that needs reconciliation by customer ID.</p></article>
+      <article class="panel"><h3>Kafka unavailable or messages redelivered</h3><p>The scheduler retries events that remain in the outbox. A crash after Kafka acknowledges a send can cause a duplicate. The listener skips requests for completed, superseded, or deleted bank rows. Result consumers can deduplicate by request UUID.</p></article>
+      <article class="panel"><h3>Check the live flow locally</h3><p>Start all three stores and the Docker Kafka broker, then run <code>./run.sh</code>. Open the <a href="http://localhost:8081/login">local dashboard</a>, save a synthetic registration, and reload the grid. Look up the customer ID on both topics in Kafka UI and match the request UUID.</p></article>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap refs"><a href="../README.md">Project README</a><a href="../DATABASE_INTEGRATION_README.md">Database integration guide</a><a href="../KAFKA_INTEGRATION_README.md">Kafka integration guide</a></div></footer>
+<script>
+const prefixes = new Map([
+  ['Bank of America', '9898'],
+  ['Chase', '7878'],
+  ['US Bank', '6868']
+]);
+const form = document.querySelector('#activation-form');
+const bankField = document.querySelector('#bank');
+const accountField = document.querySelector('#account');
+const outcome = document.querySelector('#outcome');
+const requestJson = document.querySelector('#request-json');
+const resultJson = document.querySelector('#result-json');
+
+function simulateActivation() {
+  const bank = bankField.value;
+  const prefix = prefixes.get(bank);
+  const matches = prefix !== undefined && accountField.value.startsWith(prefix);
+  const status = matches ? 'ACTIVATED' : 'FAILED';
+  const reason = matches ? `Account prefix matches ${bank}.`
+    : prefix ? `${bank} requires an account number starting with ${prefix}.`
+    : 'This bank is unsupported.';
+  const request = {customerId: 42, requestId: crypto.randomUUID?.() ?? '16e2ff06-00c1-4c15-b729-fc04b5cad65c'};
+  outcome.textContent = `${status} · ${reason}`;
+  requestJson.textContent = JSON.stringify(request, null, 2);
+  resultJson.textContent = JSON.stringify({...request, status}, null, 2);
+}
+
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  simulateActivation();
+});
+simulateActivation();
+</script>
+</body>
+</html>

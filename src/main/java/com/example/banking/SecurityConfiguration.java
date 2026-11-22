@@ -31,5 +31,6 @@ public class SecurityConfiguration {
             }));
         // CSRF remains enabled, including login, registration, delete and POST logout.
         return http.build();
+
     }
 }
